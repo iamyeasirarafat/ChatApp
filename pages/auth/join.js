@@ -1,7 +1,10 @@
+import axios from "axios";
+import { useCookies } from "react-cookie";
 import { useCreateUserWithEmailAndPassword } from "react-firebase-hooks/auth";
 import { auth } from "../../src/utils/firebase";
 
 const Join = () => {
+  const [cookie, setCookie] = useCookies();
   const [createUserWithEmailAndPassword, user, loading, error] =
     useCreateUserWithEmailAndPassword(auth);
   const handleSubmit = async (e) => {
@@ -11,6 +14,27 @@ const Join = () => {
     const password = e.target.pass.value;
     const create = await createUserWithEmailAndPassword(email, password);
     console.log(create);
+    if (create?.user) {
+      const createUser = await axios.post("/api/auth/join", {
+        name,
+        email,
+        uid: create?.user?.uid,
+      });
+      if (createUser.status === 200) {
+        setCookie("access_token", create?.user?.accessToken, {
+          path: "/",
+          maxAge: 3600, // Expires after 1hr
+          sameSite: true,
+        });
+        setCookie("refresh_token", create?.user?.refreshToken, {
+          path: "/",
+          maxAge: 86400, // Expires after 1day
+          sameSite: true,
+        });
+        localStorage.setItem("uid", create?.user?.uid);
+      }
+      console.log(createUser);
+    }
   };
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
