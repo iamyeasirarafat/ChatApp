@@ -1,9 +1,12 @@
 import axios from "axios";
+import Link from "next/link";
+import { useRouter } from "next/router";
 import { useCookies } from "react-cookie";
 import { useCreateUserWithEmailAndPassword } from "react-firebase-hooks/auth";
 import { auth } from "../../src/utils/firebase";
 
 const Join = () => {
+  const router = useRouter();
   const [cookie, setCookie] = useCookies();
   const [createUserWithEmailAndPassword, user, loading, error] =
     useCreateUserWithEmailAndPassword(auth);
@@ -13,7 +16,6 @@ const Join = () => {
     const email = e.target.email.value;
     const password = e.target.pass.value;
     const create = await createUserWithEmailAndPassword(email, password);
-    console.log(create);
     if (create?.user) {
       const createUser = await axios.post("/api/auth/join", {
         name,
@@ -21,21 +23,16 @@ const Join = () => {
         uid: create?.user?.uid,
       });
       if (createUser.status === 200) {
-        setCookie("access_token", create?.user?.accessToken, {
+        setCookie("uid", create?.user?.uid, {
           path: "/",
           maxAge: 3600, // Expires after 1hr
           sameSite: true,
         });
-        setCookie("refresh_token", create?.user?.refreshToken, {
-          path: "/",
-          maxAge: 86400, // Expires after 1day
-          sameSite: true,
-        });
-        localStorage.setItem("uid", create?.user?.uid);
+        router.push("/");
       }
-      console.log(createUser);
     }
   };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="px-8 py-6 mt-4 text-left max-w-xl rounded-lg w-full bg-white shadow-lg">
@@ -73,7 +70,13 @@ const Join = () => {
                 className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-600"
               />
             </div>
-            <div className="flex items-baseline justify-end">
+            <div className="flex items-baseline justify-between">
+              <Link
+                className="text-blue-600 text-sm underline"
+                href="/auth/login"
+              >
+                Already have account? Login
+              </Link>
               <button
                 type="submit"
                 className="px-6 py-2 mt-4 text-white bg-blue-600 rounded-lg hover:bg-blue-900"
