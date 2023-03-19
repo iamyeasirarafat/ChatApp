@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 export default async function middleware(req, res) {
-  const uid = req.cookies.get("uid")?.value;
-  if (uid) {
+  const token = req.cookies.get("token")?.value;
+  if (token) {
     // const getUser = await fetch("http://localhost:3000/api/getUser?uid=" + uid);
   } else {
     return NextResponse.redirect(new URL("/auth/login", req.url));

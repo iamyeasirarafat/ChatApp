@@ -1,6 +1,7 @@
 import { connectDb } from "../../../src/mongodb/mongoDb";
 import User from "../../../src/mongodb/schemas/user";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
 export default async function handler(req, res) {
   // checking the request is valid or spam
@@ -20,29 +21,26 @@ export default async function handler(req, res) {
     //checking the method
     if (req.method === "POST") {
       try {
-        //Checking that user is already exist or not
-
+        //Checking that user is  exist or not
         const email = req.body.email;
+        const password = req.body.password;
         const findUser = await User.findOne({ email });
         if (findUser?._id) {
-          res.status(409).json({ message: "Email already exist" });
-        } else {
-          // inserting new user to database
-          const user = new User(req.body);
-          const createUser = await user.save({
-            writeConcern: { w: "majority" },
-          });
-          if (createUser?._id) {
+          //varifying user password
+          // Verify the user's password
+          if (await bcrypt.compare(password, findUser?.password)) {
             // creating user token
             const token = jwt.sign(
-              { userId: createUser._id },
+              { userId: findUser._id },
               process.env.JWT_SECRET,
               { expiresIn: "1d" }
             );
-            res.status(200).json({ token });
+            res.status(200).json({ message: "Login successful", token });
           } else {
-            res.status(404).json({ message: "Something went wrong" });
+            res.status(401).json({ message: "Invalid  password" });
           }
+        } else {
+          res.status(401).json({ message: "User not found" });
         }
       } catch (error) {
         console.log(error);

@@ -1,34 +1,41 @@
 import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import { useCookies } from "react-cookie";
-import { useCreateUserWithEmailAndPassword } from "react-firebase-hooks/auth";
-import { auth } from "../../src/utils/firebase";
 
 const Join = () => {
   const router = useRouter();
   const [cookie, setCookie] = useCookies();
-  const [createUserWithEmailAndPassword, user, loading, error] =
-    useCreateUserWithEmailAndPassword(auth);
+  const [error, setError] = useState();
+  //form submitting function
   const handleSubmit = async (e) => {
     e.preventDefault();
     const name = e.target.name.value;
     const email = e.target.email.value;
     const password = e.target.pass.value;
-    const create = await createUserWithEmailAndPassword(email, password);
-    if (create?.user) {
+
+    try {
       const createUser = await axios.post("/api/auth/join", {
         name,
         email,
-        uid: create?.user?.uid,
+        password,
       });
+      console.log(createUser);
       if (createUser.status === 200) {
-        setCookie("uid", create?.user?.uid, {
+        setCookie("token", createUser?.data?.token, {
           path: "/",
-          maxAge: 3600, // Expires after 1hr
+          maxAge: 86400, // Expires after 1day
           sameSite: true,
         });
+        setError();
         router.push("/");
+      }
+    } catch (err) {
+      if (err?.response?.status === 409) {
+        setError("Email already exist");
+      } else {
+        setError("Something went wrong");
       }
     }
   };
@@ -44,6 +51,7 @@ const Join = () => {
                 Name
               </label>
               <input
+                required="true"
                 name="name"
                 type="text"
                 placeholder="Name"
@@ -57,6 +65,7 @@ const Join = () => {
               <input
                 name="email"
                 type="email"
+                required="true"
                 placeholder="Email"
                 className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-600"
               />
@@ -66,10 +75,12 @@ const Join = () => {
               <input
                 name="pass"
                 type="password"
+                required="true"
                 placeholder="Password"
                 className="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-600"
               />
             </div>
+            {error && <div className="text-sm text-red-500 mt-2">{error}</div>}
             <div className="flex items-baseline justify-between">
               <Link
                 className="text-blue-600 text-sm underline"

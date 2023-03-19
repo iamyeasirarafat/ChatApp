@@ -1,26 +1,39 @@
+import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import { useCookies } from "react-cookie";
-import { useSignInWithEmailAndPassword } from "react-firebase-hooks/auth";
-import { auth } from "../../src/utils/firebase";
 
 const Login = () => {
   const router = useRouter();
   const [cookie, setCookie] = useCookies();
-  const [signInWithEmailAndPassword, user, loading, error] =
-    useSignInWithEmailAndPassword(auth);
+  const [error, setError] = useState();
+  console.log(error);
   const handleSubmit = async (e) => {
     e.preventDefault();
     const email = e.target.email.value;
     const password = e.target.pass.value;
-    const login = await signInWithEmailAndPassword(email, password);
-    if (login?.user) {
-      setCookie("uid", login?.user?.uid, {
-        path: "/",
-        maxAge: 3600, // Expires after 1hr
-        sameSite: true,
+    try {
+      const res = await axios.post("/api/auth/login", {
+        email,
+        password,
       });
-      router.push("/");
+      if (res.status === 200) {
+        setCookie("token", res?.data?.token, {
+          path: "/",
+          maxAge: 86400, // Expires after 1hr
+          sameSite: true,
+        });
+        router.push("/");
+      }
+    } catch (error) {
+      if (error?.response?.status === 401) {
+        setError(
+          error?.response?.data?.message || "Something went wrong, try again"
+        );
+      } else {
+        setError("Something went wrong");
+      }
     }
   };
   return (
@@ -37,6 +50,7 @@ const Login = () => {
                 <input
                   type="email"
                   name="email"
+                  required="true"
                   placeholder="Email"
                   class="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-600"
                 />
@@ -46,10 +60,14 @@ const Login = () => {
                 <input
                   type="password"
                   name="pass"
+                  required="true"
                   placeholder="Password"
                   class="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-600"
                 />
               </div>
+              {error && (
+                <div className="text-sm text-red-500 mt-2">{error}</div>
+              )}
               <div className="flex items-baseline justify-between">
                 <Link
                   className="text-blue-600 text-sm underline"
